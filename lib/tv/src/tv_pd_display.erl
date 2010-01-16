@@ -112,7 +112,7 @@ init_display(WindowId, WindowWidth, WindowHeight, ProcVars) ->
 				  hbtn_height     = ?HBTN_HEIGHT,
 				  resbtn_width    = ?RESBTN_WIDTH,
 				  vbtn_width      = ?VBTN_WIDTH,
-				  nof_rows        = ?NOF_GRIDROWS,
+				  nof_rows        = tv_comm_func:max(NofRowsShown, ?NOF_GRIDROWS),
 				  row_height      = ?ROW_HEIGHT,
 				  first_col_shown = FirstColShown,
 				  cols_shown      = ColsShown
@@ -330,6 +330,7 @@ scroll_horizontally(MouseBtn, ProcVars) ->
 perform_vertical_scroll(NewScalePos, ProcVars) ->
     #process_variables{master_pid   = MasterPid,
 		       initialising = Init,
+                       nof_rows_shown = NofRowsShown,
 		       scale_params = ScaleP} = ProcVars,
     
        %% To avoid erroneous scrollbar signals during creation of the display.
@@ -339,7 +340,7 @@ perform_vertical_scroll(NewScalePos, ProcVars) ->
 	false ->
 	    MasterPid ! #pc_data_req{sender = self(),
 				     element = NewScalePos,
-				     nof_elements = ?NOF_GRIDROWS}
+				     nof_elements = tv_comm_func:max(NofRowsShown, ?NOF_GRIDROWS)}
     end,
     
        % Since the order of click/buttonrelease messages isn't

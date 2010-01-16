@@ -199,11 +199,21 @@ resize_grid(NewWidth, NewHeight, ProcVars) ->
 
     NewColWidths = update_col_widths(ColsShown, ColWidths, FirstColShown, 
 				     DefaultColWidth),
-    
+
     NofColsShown = length(ColsShown),
+    % Extend ColFrameIds, ColIds and RowIds, if there is more rows has to be shown than it was before
+    if NofRowsShown > length(RowIds) ->
+            RowNo = length(RowIds) + 1,
+            NofRowsToAdd = NofRowsShown - length(RowIds),
+            {ExtColFrameIds, ExtColIds} = add_rows(NofRowsToAdd, ColFrameIds, ColIds, NewHeight, NewWidth, BgColor, FgColor, 0, RowNo, [], []),
+            ExtRowIds    = get_row_ids(NofRowsShown, ExtColIds, []);
+       true ->
+            {ExtColFrameIds, ExtColIds} = {ColFrameIds, ColIds},
+            ExtRowIds = RowIds
+    end,
     {NewNofCols, NewColFrameIds, NewColIds, NewRowIds} = 
-	check_nof_cols(ColsShown, (NofColsShown - NofCols), ColFrameIds, ColIds, 
-		       RowIds, NofRows, RowHeight, FgColor, BgColor ),
+	check_nof_cols(ColsShown, (NofColsShown - NofCols), ExtColFrameIds, ExtColIds, 
+		       ExtRowIds, NofRows, RowHeight, FgColor, BgColor ),
 
     clear_fields(lists:nthtail(NofColsShown, NewColIds), 
 		 lists:nthtail(NofRowsShown, NewRowIds)),
@@ -1888,6 +1898,44 @@ extract_ids_for_one_row(_N, []) ->
     [];
 extract_ids_for_one_row(N, [ColIds | Tail]) ->
     [lists:nth(N, ColIds) | extract_ids_for_one_row(N, Tail)].
+
+
+%%======================================================================
+%% Function:      add_rows_to_colframe
+%%
+%% Return Value:  
+%%
+%% Description:   
+%%
+%% Parameters:    
+%%======================================================================
+
+add_rows_to_colframe(0, _FrameId, ColLabel, _H, _W, _Y, _Bg, _Fg, _ColNo, _RowNo) ->
+    ColLabel;
+add_rows_to_colframe(Number, FrameId, ColLabel, H, W, Y, Bg, Fg, ColNo, RowNo) ->
+    R = gs:label(FrameId, [{width, W},
+                           {height, H},
+                           {x, 1},
+                           {y, Y},
+                           {bg, Bg},
+                           {fg, Fg},
+                           {align, w},
+                           {buttonpress, true},
+                           {data, {gridcell, ColNo, RowNo, FrameId}}
+                           ]),
+    NewColLabel = ColLabel ++ [R],
+    NewNumber = Number - 1,
+    NewRowNo = RowNo + 1,
+    NewY = Y + H + 1,
+    add_rows_to_colframe(NewNumber, FrameId, NewColLabel, H, W, NewY, Bg, Fg, ColNo, NewRowNo).
+
+add_rows(_Number, [], [], _H, _W, _Bg, _Fg, _ColNo, _RowNo, FrameAcc, LabelAcc) ->
+    {lists:reverse(FrameAcc), lists:reverse(LabelAcc)};
+add_rows(Number, [FrameId|RestFrameIdList], [ColLabel|RestColLabelList], H, W, Bg, Fg, ColNo, RowNo, FrameAcc, LabelAcc) ->
+    Y = RowNo * H + 1,
+    NewColNo = ColNo + 1,
+    NewColLabel = add_rows_to_colframe(Number, FrameId, ColLabel, H, W, Y, Bg, Fg, NewColNo, RowNo),
+    add_rows(Number, RestFrameIdList, RestColLabelList, H, W, Bg, Fg, NewColNo, RowNo, [FrameId|FrameAcc], [NewColLabel|LabelAcc]).
 
 
 
